@@ -21,9 +21,13 @@ app.use((req, res, next) => {
     next();
   });
 
+//   app.get("/") -> "Home Page"
+
   app.get('/', (req, res) => {
     res.send('HOME PAGE');
   });
+
+//   app.post("/login") -> Chamada login
 
   app.post('/login', async (req, res) => {
     const { name, password } = req.body;
@@ -42,3 +46,31 @@ app.use((req, res, next) => {
   
     res.status(200).json({ token });
   });
+
+//   app.get("/users") -> Mostrar todos os usuários
+
+app.get('/users', async (req, res) => {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decodedToken = jwt.verify(token, dbConfig.tchave);
+      req.userData = { userId: decodedToken.userId };
+    } catch (error) {
+      return res.status(401).send('TOKEN INVÁLIDO!');
+    }
+
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request()
+      .query('SELECT * FROM Users');
+    const users = result.recordset;
+  
+    res.status(200).json({ users });
+  });
+
+//   app.post("/users") -> Criar um usuário
+
+
+//   app.put("/users/:id") -> Atualizar um usuário
+
+
+//   app.delete("/users/:id") -> deletar um usuário
+
