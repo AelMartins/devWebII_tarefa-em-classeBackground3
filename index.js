@@ -20,3 +20,25 @@ app.use((req, res, next) => {
     }
     next();
   });
+
+  app.get('/', (req, res) => {
+    res.send('HOME PAGE');
+  });
+
+  app.post('/login', async (req, res) => {
+    const { name, password } = req.body;
+  
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request()
+      .input('name', sql.NVarChar, name)
+      .query('SELECT * FROM Users WHERE name = @name');
+    const user = result.recordset[0];
+
+    if (!user || !await bcrypt.compare(password, user.password)) {
+      return res.status(401).send('INFORMAÇÕES INCORRETAS!');
+    }
+
+    const token = jwt.sign({ userId: user.id }, dbConfig.tchave);
+  
+    res.status(200).json({ token });
+  });
