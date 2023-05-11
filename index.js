@@ -141,3 +141,30 @@ app.put('/users/:id', async (req, res) => {
 
 //   app.delete("/users/:id") -> deletar um usuário
 
+app.delete('/users/:id', async (req, res) => {
+    const { id } = req.params;
+  
+    let pool;
+  
+    try {
+      pool = await mssql.connect(dbConfig);
+  
+      const result = await pool.request()
+        .input('id', mssql.Int, id)
+        .query(`SELECT name FROM Users WHERE id = @id`);
+  
+      const userName = result.recordset[0].name;
+  
+      await pool.request()
+        .input('id', mssql.Int, id)
+        .query(`DELETE FROM Users WHERE id = @id`);
+  
+      res.status(200).send(`O USUÁRIO "${userName}" FOI DELETADO COM SUCESSO!`);
+    } catch (error) {
+      res.status(500).json({ error: `ERRO AO DELETAR USUÁRIO: ${error.message}` });
+    } finally {
+      if (pool) {
+        pool.close();
+      }
+    }
+  });
