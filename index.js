@@ -83,11 +83,11 @@ app.post('/users', async (req, res) => {
         return res.status(400).json({ error: `NOME DE USUÁRIO JÁ REGISTRADO` });
       }
 
-      const password = await bcrypt.hash(req.body.password, dbConfig.cryptHash);
+      const addPassword = await bcrypt.hash(req.body.password, dbConfig.cryptHash);
   
       const insertUser = await pool.request()
         .input('name', mssql.VarChar, req.body.name)
-        .input('password', mssql.VarChar, password)
+        .input('password', mssql.VarChar, addPassword)
         .query('INSERT INTO Users (name, password) VALUES (@name, @password)');
   
       const newUser = insertUser.recordset;
@@ -104,6 +104,40 @@ app.post('/users', async (req, res) => {
 
 //   app.put("/users/:id") -> Atualizar um usuário
 
+app.put('/users/:id', async (req, res) => {
+    const { name, password } = req.body;
+    const { id } = req.params;
+  
+    let pool;
+
+    try {
+        pool = await mssql.connect(dbConfig);
+        const result = await pool.request()
+          .input('name', mssql.VarChar, name)
+          .query(`SELECT COUNT(*) AS count FROM users WHERE ${ name } = @name`);
+    
+        const countUsers = result.recordset[0].count;
+    
+        if (countUsers > 0) {
+          return res.status(400).json({ error: `NOME DE USUÁRIO JÁ REGISTRADO` });
+        }
+        
+        const newPassword = await bcrypt.hash(password, dbConfig.cryptHash);
+        
+        await pool.request()
+        .input('name', mssql.VarChar, name)
+        .input('password', mssql.VarChar, newPassword)
+        .input('id', mssql.Int, id)
+        .query(`UPDATE Users SET name = @name, password = @password) WHERE id = @id`);
+        res.status(200).send(`USUÁRIO ATUALIZADO!`);
+    } catch (error) {
+        res.status(500).json({ error: `ERRO AO ATUALIZAR USUÁRIO: ${error.message}` });
+      } finally {
+          if (pool){
+              pool.close();
+          }
+      }
+  });
 
 //   app.delete("/users/:id") -> deletar um usuário
 
