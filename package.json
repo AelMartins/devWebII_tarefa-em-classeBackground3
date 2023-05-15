@@ -10,10 +10,10 @@
   "name": "exercicio-em-aulabackground3",
   "version": "1.0.0",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "dev": "nodemon --inspect index.js"
   },
   "repository": {
     "type": "git",

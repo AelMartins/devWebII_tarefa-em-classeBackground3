@@ -1,6 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const mssql = require("mssql");
 const { dbConfig } = require("./data-base/data");
 
 const app = express();
@@ -35,10 +36,10 @@ app.post("/login", async (req, res) => {
   let pool;
 
   try {
-    pool = await sql.connect(dbConfig);
+    pool = await mssql.connect(dbConfig);
     const result = await pool
       .request()
-      .input("name", sql.NVarChar, name)
+      .input("name", mssql.NVarChar, name)
       .query("SELECT * FROM Users WHERE name = @name");
     const user = result.recordset[0];
 
@@ -53,9 +54,7 @@ app.post("/login", async (req, res) => {
     if (pool) {
       pool.close();
     }
-    res
-      .status(500)
-      .json({ error: `ERRO DE REQUISIÇÃO DE LOGIN: ${error.message}` });
+    res.status(500).json({ error: `ERRO DE REQUISIÇÃO DE LOGIN: '${error.message}'` });
   } finally {
     if (pool) {
       pool.close();
@@ -73,14 +72,14 @@ app.get("/users", async (req, res) => {
     const token = req.headers.authorization.split(" ")[1];
     const decodedToken = jwt.verify(token, dbConfig.tchave);
 
-    req.userData = { userId: decodedToken.userId };
+    req.userData = { userId: decodedToken.user.id };
 
   } catch (error) {
     return res.status(500).json({ error: `TOKEN INVÁLIDO: ${error.message}` });
   }
 
   try {
-    poolGetUsers = await sql.connect(dbConfig);
+    poolGetUsers = await mssql.connect(dbConfig);
     const result = await pool.request().query("SELECT * FROM Users");
 
     const users = result.recordset;
@@ -104,7 +103,7 @@ app.post("/users", async (req, res) => {
   let pool;
 
   try {
-    pool = await mssql.connect(dbConfig);
+    pool = await mssql.connect(dbConfig)
     const result = await pool
       .request()
       .input("name", mssql.VarChar, req.body.name)
@@ -128,6 +127,7 @@ app.post("/users", async (req, res) => {
 
     res.status(200).send(`USUÁRIO " ${newUser} " ADICIONADO!`);
   } catch (error) {
+    console.error(error)
     res.status(500).json({ error: `ERRO AO CRIAR USUÁRIO: ${error.message}` });
   } finally {
     if (pool) {
